@@ -29,6 +29,8 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
+import androidx.activity.result.IntentSenderRequest
+import androidx.activity.result.contract.ActivityResultContracts.StartIntentSenderForResult
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
@@ -76,21 +78,18 @@ class MainActivity : AppCompatActivity() {
             galleryAdapter.submitList(images)
         })
 
+        val deletePermissionLauncher = registerForActivityResult(StartIntentSenderForResult()) {
+            if (it.resultCode == Activity.RESULT_OK) {
+                viewModel.deletePendingImage()
+            }
+        }
         viewModel.permissionNeededForDelete.observe(this, Observer { intentSender ->
             intentSender?.let {
                 // On Android 10+, if the app doesn't have permission to modify
                 // or delete an item, it returns an `IntentSender` that we can
                 // use here to prompt the user to grant permission to delete (or modify)
                 // the image.
-                startIntentSenderForResult(
-                    intentSender,
-                    DELETE_PERMISSION_REQUEST,
-                    null,
-                    0,
-                    0,
-                    0,
-                    null
-                )
+                deletePermissionLauncher.launch(IntentSenderRequest.Builder(it).build())
             }
         })
 
@@ -140,13 +139,6 @@ class MainActivity : AppCompatActivity() {
                 }
                 return
             }
-        }
-    }
-
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        if (resultCode == Activity.RESULT_OK && requestCode == DELETE_PERMISSION_REQUEST) {
-            viewModel.deletePendingImage()
         }
     }
 
